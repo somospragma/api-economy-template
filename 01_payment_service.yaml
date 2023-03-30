@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda function.
+Resources:
+  PaymentService:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: 'payment'
+      Runtime: python3.9
+      Role: !GetAtt PaymentServiceRole.Arn
+      Handler: index.lambda_handler
+      Code:
+        ZipFile: |
+          import time
+          def lambda_handler(event, context):
+              #time.sleep(120)
+              return {
+                  'statusCode': 200,
+                  'body': 'Your payment has been done successfully'
+              }
+
+      Description: Function.
+      TracingConfig:
+        Mode: Active
+  PaymentServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+  PaymentLogGroup: 
+    Type: AWS::Logs::LogGroup
+    Properties:   
+      LogGroupName: !Join
+        - ''
+        - - '/aws/lambda/'
+          - !Ref PaymentService
+      RetentionInDays: 7
+  PaymentXRayGroup:
+      Type: AWS::XRay::Group
+      Properties:
+         GroupName: PaymentXRayGroup
+         FilterExpression: duration > 10
+         InsightsConfiguration:
+            InsightsEnabled: false
+            NotificationsEnabled: false 
+Outputs:
+  PaymentService:
+      Description: 'Export the PaymentService'
+      Value: !Ref PaymentService
+      Export: 
+          Name: PaymentService
+  PaymentServiceArn:
+      Description: 'Export the PaymentServiceArn'
+      Value: !GetAtt PaymentService.Arn
+      Export: 
+          Name: PaymentServiceArn
+
+
+          
+
+            

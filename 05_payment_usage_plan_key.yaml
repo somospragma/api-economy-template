@@ -1,0 +1,31 @@
+Resources:
+  PaymentUsagePlan:
+    Type: 'AWS::ApiGateway::UsagePlan'
+    Properties:
+      ApiStages:
+        - ApiId: !ImportValue PaymentRestApi
+          Stage: !ImportValue ProdStage
+      Description: Payment usage plan
+      Quota:
+        Limit: 20
+        Period: MONTH
+      Throttle:
+        BurstLimit: 20
+        RateLimit: 20
+      UsagePlanName: Payment_Usage_Plan
+  PaymentApiKey:
+    Type: 'AWS::ApiGateway::ApiKey'
+    Properties:
+      Name: plan1_key
+      Description: Payment API Key V1
+      Enabled: true
+      StageKeys:
+        - RestApiId: !ImportValue PaymentRestApi
+          StageName: !ImportValue ProdStage
+  PaymentUsagePlanKey:
+    Type: 'AWS::ApiGateway::UsagePlanKey'
+    Properties:
+      KeyId: !Ref PaymentApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref PaymentUsagePlan
+

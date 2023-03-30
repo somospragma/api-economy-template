@@ -1,0 +1,30 @@
+#Parameters:
+#    PaymentRestApi:
+#        Type: String
+#    PaymentDeployment:
+#        Type: String
+Resources:               
+    Prod: 
+        Type: AWS::ApiGateway::Stage
+        Properties: 
+            StageName: prod
+            Description: Prod Stage
+#            RestApiId: !Ref PaymentRestApi        
+#            DeploymentId: !Ref PaymentDeployment
+            RestApiId: !ImportValue PaymentRestApi        
+            DeploymentId: !ImportValue PaymentDeployment
+            Variables: 
+                Stack: Prod
+            MethodSettings: 
+                - ResourcePath: /payment
+                  HttpMethod: GET
+                  MetricsEnabled: 'true'
+                  LoggingLevel: 'INFO'
+                  DataTraceEnabled: 'true'
+            TracingEnabled: true
+Outputs: 
+    ProdStage:
+        Description: 'Export the Stage'
+        Value: !Ref Prod
+        Export: 
+            Name: ProdStage  

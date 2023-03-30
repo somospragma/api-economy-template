@@ -1,0 +1,13 @@
+Resources : 
+  DevOpsGuruResourceCollection: 
+    Type : 'AWS::DevOpsGuru::ResourceCollection'
+    Properties : 
+      ResourceCollectionFilter : 
+        CloudFormation:
+          StackNames: 
+            - "*"
+#            - 'PaymentService'
+#            - 'PaymentCognito'
+#            - 'PaymentAPI'
+#            - 'PaymentAPIStage'
+#            - 'PaymentAPIUsagePlanKey'
