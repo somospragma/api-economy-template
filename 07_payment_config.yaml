@@ -1,0 +1,97 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  ConfigRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: config.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: 'config-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                  - s3:ListAllMyBuckets
+                Resource: 'arn:aws:s3:::*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                  - s3:ListBucket
+                  - s3:ListBucketVersions
+                  - s3:ListAllMyBuckets
+                Resource: 'arn:aws:s3:::my-config-bucket/*'
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - config:DeliverConfigSnapshot
+                  - config:DescribeDeliveryChannels
+                  - config:GetResourceConfigHistory
+                  - config:GetDiscoveredResourceCounts
+                  - config:GetResourceConfigRules
+                  - config:GetResourceConfigs
+                  - config:PutConfigRule
+                  - config:PutConfigurationRecorder
+                  - config:StartConfigurationRecorder
+                  - config:StopConfigurationRecorder
+                  - config:DeleteConfigurationRecorder
+                  - config:DeleteDeliveryChannel
+                  - config:PutDeliveryChannel
+                  - config:PutEvaluations
+                  - config:GetComplianceDetailsByConfigRule
+                  - config:PutRetentionConfiguration
+                Resource: '*'
+  ConfigRecorder:
+    Type: 'AWS::Config::ConfigurationRecorder'
+    Properties:
+      RoleARN: !GetAtt ConfigRole.Arn
+      RecordingGroup:
+        allSupported: true
+        includeGlobalResourceTypes: true
+  DeliveryChannel:
+    Type: 'AWS::Config::DeliveryChannel'
+    Properties:
+      ConfigSnapshotDeliveryProperties:
+        deliveryFrequency: 'Six_Hours'
+      S3BucketName: 'my-config-bucket'
+      SnsTopicARN: !Ref SnsTopic
+  SnsTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: 'AWS Config notifications'
+      TopicName: 'my-config-topic'
+  ApiGatewayDeploymentCountRule:
+    Type: 'AWS::Config::ConfigRule'
+    Properties:
+      ConfigRuleName: 'api-gateway-deployments-count'
+      Description: 'Ensure that the number of API Gateway deployments in your account is within the defined limit.'
+      InputParameters:
+        numberOfDeployments: '10'
+      Scope:
+        ComplianceResourceTypes:
+          - 'AWS::ApiGateway::Deployment'
+      Source:
+        Owner: AWS
+        SourceIdentifier: 'API_GATEWAY_DEPLOYMENTS_COUNT'
+  DevOpsGuruInsightRule:
+    Type: 'AWS::Config::ConfigRule'
+    Properties:
+      ConfigRuleName: 'devops-guru-insights-enabled'
+      Description: 'Ensure that Amazon DevOps Guru is enabled for your AWS account.'
+      InputParameters:
+        enabled: 'true
