@@ -8,6 +8,7 @@ Resources:
       Runtime: python3.9
       Role: !GetAtt PaymentServiceRole.Arn
       Handler: index.lambda_handler
+      Timeout: 180
       Code:
         ZipFile: |
           import time

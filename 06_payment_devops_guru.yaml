@@ -6,8 +6,3 @@ Resources :
         CloudFormation:
           StackNames: 
             - "*"
-#            - 'PaymentService'
-#            - 'PaymentCognito'
-#            - 'PaymentAPI'
-#            - 'PaymentAPIStage'
-#            - 'PaymentAPIUsagePlanKey'

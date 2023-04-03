@@ -1,16 +1,9 @@
-#Parameters:
-#    PaymentRestApi:
-#        Type: String
-#    PaymentDeployment:
-#        Type: String
 Resources:               
     Prod: 
         Type: AWS::ApiGateway::Stage
         Properties: 
             StageName: prod
             Description: Prod Stage
-#            RestApiId: !Ref PaymentRestApi        
-#            DeploymentId: !Ref PaymentDeployment
             RestApiId: !ImportValue PaymentRestApi        
             DeploymentId: !ImportValue PaymentDeployment
             Variables: 
