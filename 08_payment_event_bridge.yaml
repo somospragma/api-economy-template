@@ -24,13 +24,13 @@ Resources:
             Action:
               - 'lambda:InvokeFunction'
             Resource:
-              - !ImportValue PaymentRestApiArn
+              - !ImportValue PaymentServiceArn
       Roles: 
         - Ref: "PaymentSchedulerRole"
   PaymentScheduledTrigger:    
     Type: AWS::Scheduler::Schedule
     Properties: 
-      Description: 'Event Bridge to trigger payment service API'
+      Description: 'Event Bridge to trigger payment service'
       FlexibleTimeWindow: 
         Mode: 'OFF'
       Name: 'EventBridgeToTriggerPaymentService'
