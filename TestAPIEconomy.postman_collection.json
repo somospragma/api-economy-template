@@ -1,0 +1,109 @@
+{
+	"info": {
+		"_postman_id": "161c05c4-fb8e-47c1-9782-b01f23c39fe5",
+		"name": "TestAPIEconomy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26718513"
+	},
+	"item": [
+		{
+			"name": "getPayment",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept": true,
+					"accept-encoding": true,
+					"connection": true,
+					"user-agent": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{X-API-KEY}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{URL}}",
+					"host": [
+						"{{URL}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer"
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "TOKEN",
+			"value": "eyJraWQiOiJ2d3dMNGZyV2had3pObFRtQUNYWkw0bEdsbTdKSndXbnBkWVBDXC9mNTM0UT0iLCJhbGciOiJSUzI1NiJ9.eyJhdF9oYXNoIjoiOHFnU2JpS0VZWUxfajNDemNnd3ZYQSIsInN1YiI6ImIwM2FiZTlmLTJiN2ItNDE2ZC04Y2QyLTRmZjAyZmU4OGQyNCIsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX2M1ZzU0ZG41eCIsImNvZ25pdG86dXNlcm5hbWUiOiJiMDNhYmU5Zi0yYjdiLTQxNmQtOGNkMi00ZmYwMmZlODhkMjQiLCJhdWQiOiJzZnM4bzJtYWI2cTVrbzM5NG1kNXIyamZpIiwiZXZlbnRfaWQiOiJhMTU1ZWVlMC00NGVjLTRjOWYtOWFmOS02NTU0NjY3Yzg2ZGYiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTY4MDU1MzEzNCwiZXhwIjoxNjgwNTU2NzM0LCJpYXQiOjE2ODA1NTMxMzQsImp0aSI6IjdmMGViZjdhLWY5MzctNGRhMS1iY2UwLTI0ZWMwY2E2YTRlYiIsImVtYWlsIjoibmljb2xhcy5hcmNoaWxhQHByYWdtYS5jb20uY28ifQ.aM3M642XLptVVx28qUaDceLo8SCsBBMQHA61y4dCNYxXU-50QDY1TlNZqgFFPEZ4T41ZdbJ6RUjZJ5DZIhdGYzIcR-qehXTQn8pvdIv8sJ7SIDsB_MiX0htWZmF2wTcexobaaEasGjjaaRSSTyNiyaVFYOlX4BtIbRsrYh3DgE0CRPvTXTnKMfVEczHBjEfvLSpziblEqGkhV9fHFooVkOWTlsVse4KKjEc9XiWLpj6psZ-idQa9igEXBSyJJ-O-LMCv3Vk9ttESIbaG7oLHa_uRgayzCJnUOwYNyB72zVFn3RPHKhaVuUnujPIOvGmXYfv5qEAvEa0Z9QP0gTetYg",
+			"type": "string"
+		},
+		{
+			"key": "X-API-KEY",
+			"value": "qICYbVfuzQ3wGDrJPSD5WnWLH6jPfwN5FCAS2KMb"
+		},
+		{
+			"key": "URL",
+			"value": "https://cqgkcdeh63.execute-api.us-east-1.amazonaws.com/prod/payment/"
+		}
+	]
+}
