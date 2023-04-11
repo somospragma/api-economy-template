@@ -1,4 +1,45 @@
 Resources: 
+    ApiCloudWatchRole: 
+        Type: "AWS::IAM::Role"
+        Properties: 
+            AssumeRolePolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                - 
+                    Effect: "Allow"
+                    Principal: 
+                        Service: 
+                            - "apigateway.amazonaws.com"
+                            - "lambda.amazonaws.com"
+                    Action: 
+                        - "sts:AssumeRole"
+    ApiCloudWatchPolicy:
+        Type: 'AWS::IAM::Policy'
+        DependsOn: 
+            - ApiCloudWatchRole
+        Properties:
+            PolicyName: 'ApiCloudWatchPolicy'
+            PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: Allow
+                      Action:
+                        - 'logs:CreateLogGroup'
+                        - 'logs:CreateLogStream'
+                        - 'logs:DescribeLogGroups'
+                        - 'logs:DescribeLogStreams'
+                        - 'logs:PutLogEvents'
+                        - 'logs:GetLogEvents'
+                        - 'logs:FilterLogEvents'
+                      Resource: '*'
+            Roles: 
+                - Ref: "ApiCloudWatchRole"
+    AccountApi: 
+        Type: AWS::ApiGateway::Account
+        DependsOn: 
+            - ApiCloudWatchPolicy
+        Properties: 
+            CloudWatchRoleArn: !GetAtt ApiCloudWatchRole.Arn
     PaymentRestApi:
         Type: AWS::ApiGateway::RestApi
         Properties:
