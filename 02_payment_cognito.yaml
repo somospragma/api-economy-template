@@ -34,7 +34,7 @@ Resources:
   ExampleUser:
     Type: AWS::Cognito::UserPoolUser
     Properties: 
-      Username: 'nicolas.archila@pragma.com.co'
+      Username: 'example@pragma.com.co'
       UserPoolId: !Ref MultitenantUserPool
 Outputs: 
     MultitenantUserPoolArn:
