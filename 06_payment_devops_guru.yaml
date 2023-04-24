@@ -1,8 +1,0 @@
-Resources : 
-  DevOpsGuruResourceCollection: 
-    Type : 'AWS::DevOpsGuru::ResourceCollection'
-    Properties : 
-      ResourceCollectionFilter : 
-        CloudFormation:
-          StackNames: 
-            - "*"

@@ -80,7 +80,7 @@ Resources:
   PaymentUserPoolDomain: 
     Type: AWS::Cognito::UserPoolDomain
     Properties: 
-      Domain: 'example-domain'
+      Domain: 'payment-example-domain'
       UserPoolId: !Ref MultitenantUserPool
   ExampleUser:
     Type: AWS::Cognito::UserPoolUser
