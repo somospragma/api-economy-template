@@ -119,7 +119,7 @@ Resources:
                       - 'logs:PutLogEvents'
                       - 'logs:GetLogEvents'
                       - 'logs:FilterLogEvents'
-                    Resource: '*'
+                    Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
           Roles: 
               - Ref: "ApiCloudWatchRole"
   AccountApi: 
@@ -188,7 +188,7 @@ Resources:
           Action: lambda:InvokeFunction
           Principal: apigateway.amazonaws.com
           SourceAccount: !Ref 'AWS::AccountId'
-          SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PaymentRestApi}/*/*/*'
+          SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PaymentRestApi}/*/GET/payment'
   PaymentAuthorizer:
       Type: 'AWS::ApiGateway::Authorizer'
       Properties:
@@ -249,7 +249,7 @@ Resources:
         ResourceCollectionFilter : 
           CloudFormation:
             StackNames: 
-              - "*"
+              - "APIEconomyExampleStack"
   PaymentSchedulerRole: 
       Type: "AWS::IAM::Role"
       Properties: 
