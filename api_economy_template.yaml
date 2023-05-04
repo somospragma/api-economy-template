@@ -1,14 +1,20 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Lambda function.
+Parameters:
+  UserName:
+    Type: String
 Resources:
   PaymentService:
+    DependsOn:
+      - EC2NetworkInterfacePolicy
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: 'payment'
       Runtime: python3.9
-      Role: !GetAtt PaymentServiceRole.Arn
+      Role: !GetAtt PaymentLambdaRole.Arn
       Handler: index.lambda_handler
       Timeout: 180
+      ReservedConcurrentExecutions: 20
       Code:
         ZipFile: |
           import time
@@ -20,20 +26,132 @@ Resources:
               }
 
       Description: Function.
+      VpcConfig:
+        SecurityGroupIds: 
+          - !GetAtt PaymentLambdaSG.GroupId
+        SubnetIds: 
+          - !Ref PaymentLambdaSubnet
       TracingConfig:
         Mode: Active
-  PaymentServiceRole:
-    Type: 'AWS::IAM::Role'
+  PaymentLambdaRole: 
+        Type: "AWS::IAM::Role"
+        Properties: 
+            Policies:
+              - PolicyName: writeLogs
+                PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: Allow
+                      Action: 
+                        - 'logs:CreateLogGroup'
+                        - 'logs:CreateLogStream'
+                        - 'logs:PutLogEvents'
+                      Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+            AssumeRolePolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                - 
+                    Effect: "Allow"
+                    Principal: 
+                        Service: 
+                            - "lambda.amazonaws.com"
+                    Action: 
+                        - 'sts:AssumeRole'
+  PaymentAPIRole: 
+        Type: "AWS::IAM::Role"
+        Properties: 
+            AssumeRolePolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                - 
+                    Effect: "Allow"
+                    Principal: 
+                        Service: 
+                            - "apigateway.amazonaws.com"
+                    Action: 
+                        - "sts:AssumeRole"
+  CloudWatchPolicy:
+      Type: 'AWS::IAM::Policy'
+      DependsOn: 
+          - PaymentAPIRole
+          - PaymentLambdaRole
+      Properties:
+          PolicyName: 'CloudWatchPolicy'
+          PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                  - Effect: Allow
+                    Action:
+                      - 'logs:CreateLogGroup'
+                      - 'logs:CreateLogStream'
+                      - 'logs:DescribeLogGroups'
+                      - 'logs:DescribeLogStreams'
+                      - 'logs:PutLogEvents'
+                      - 'logs:GetLogEvents'
+                      - 'logs:FilterLogEvents'
+                    Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+          Roles: 
+              - Ref: "PaymentAPIRole"
+              - Ref: "PaymentLambdaRole"
+  EC2NetworkInterfacePolicy:
+      Type: 'AWS::IAM::Policy'
+      DependsOn:
+          - PaymentLambdaRole
+      Properties:
+          PolicyName: 'EC2NetworkInterfacePolicy'
+          PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                  - Effect: Allow
+                    Action:
+                      - 'ec2:DescribeNetworkInterfaces'
+                      - 'ec2:CreateNetworkInterface'
+                      - 'ec2:DeleteNetworkInterface'
+                      - 'ec2:DescribeInstances'
+                      - 'ec2:AttachNetworkInterface'
+                    Resource: '*'
+          Roles: 
+              - Ref: "PaymentLambdaRole"
+  PaymentLambdaVPC:
+    Type: 'AWS::EC2::VPC'
     Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
+      CidrBlock: 172.32.0.0/16
+      EnableDnsHostnames: true
+  FlowLogs:
+    DependsOn: 
+      - PaymentLambdaVPC
+    Type: 'AWS::EC2::FlowLog'
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt PaymentLambdaRole.Arn
+      LogDestination: !GetAtt PaymentLogGroup.Arn
+      ResourceId: !Ref PaymentLambdaVPC
+      ResourceType: VPC
+      TrafficType: ALL
+  PaymentLambdaSG:
+    DependsOn: 
+          - PaymentLambdaVPC
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Enable HTTPS access'
+      VpcId: !Ref PaymentLambdaVPC
+      SecurityGroupIngress:
+        - IpProtocol: TCP
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 172.32.0.0/32
+          Description: 'Enable HTTPS access'
+      SecurityGroupEgress:
+        - IpProtocol: TCP
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 172.32.0.0/32
+          Description: 'Enable HTTPS access'
+  PaymentLambdaSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: PaymentLambdaVPC
+      CidrBlock: 172.32.0.0/24
   PaymentLogGroup: 
     Type: AWS::Logs::LogGroup
     Properties:   
@@ -42,6 +160,7 @@ Resources:
         - - '/aws/lambda/'
           - !Ref PaymentService
       RetentionInDays: 7
+      KmsKeyId: !GetAtt PaymentLogGroupKey.Arn
   PaymentXRayGroup:
       Type: AWS::XRay::Group
       Properties:
@@ -87,47 +206,12 @@ Resources:
     Properties: 
       Username: 'example@pragma.com.co'
       UserPoolId: !Ref MultitenantUserPool
-  ApiCloudWatchRole: 
-        Type: "AWS::IAM::Role"
-        Properties: 
-            AssumeRolePolicyDocument: 
-                Version: "2012-10-17"
-                Statement: 
-                - 
-                    Effect: "Allow"
-                    Principal: 
-                        Service: 
-                            - "apigateway.amazonaws.com"
-                            - "lambda.amazonaws.com"
-                    Action: 
-                        - "sts:AssumeRole"
-  ApiCloudWatchPolicy:
-      Type: 'AWS::IAM::Policy'
-      DependsOn: 
-          - ApiCloudWatchRole
-      Properties:
-          PolicyName: 'ApiCloudWatchPolicy'
-          PolicyDocument:
-              Version: "2012-10-17"
-              Statement:
-                  - Effect: Allow
-                    Action:
-                      - 'logs:CreateLogGroup'
-                      - 'logs:CreateLogStream'
-                      - 'logs:DescribeLogGroups'
-                      - 'logs:DescribeLogStreams'
-                      - 'logs:PutLogEvents'
-                      - 'logs:GetLogEvents'
-                      - 'logs:FilterLogEvents'
-                    Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
-          Roles: 
-              - Ref: "ApiCloudWatchRole"
   AccountApi: 
       Type: AWS::ApiGateway::Account
       DependsOn: 
-          - ApiCloudWatchPolicy
+          - CloudWatchPolicy
       Properties: 
-          CloudWatchRoleArn: !GetAtt ApiCloudWatchRole.Arn
+          CloudWatchRoleArn: !GetAtt PaymentAPIRole.Arn
   PaymentRestApi:
       Type: AWS::ApiGateway::RestApi
       Properties:
@@ -201,6 +285,9 @@ Resources:
   Prod: 
       Type: AWS::ApiGateway::Stage
       Properties: 
+          AccessLogSetting: 
+              DestinationArn: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/payment:*'
+              Format: '$context.requestId'
           StageName: prod
           Description: Prod Stage
           RestApiId: !Ref PaymentRestApi        
@@ -231,7 +318,6 @@ Resources:
   PaymentApiKey:
       Type: 'AWS::ApiGateway::ApiKey'
       Properties:
-        Name: plan1_key
         Description: Payment API Key V1
         Enabled: true
         StageKeys:
@@ -290,3 +376,36 @@ Resources:
         Target: 
           Arn: !GetAtt PaymentService.Arn
           RoleArn: !GetAtt PaymentSchedulerRole.Arn
+  PaymentLogGroupKey:
+      Type: 'AWS::KMS::Key'
+      Properties:
+        Description: An example symmetric encryption KMS key
+        EnableKeyRotation: true
+        PendingWindowInDays: 20
+        KeyPolicy:
+          Version: '2012-10-17'
+          Id: key-payment-loggroup
+          Statement:
+            - Sid: Allow use of the key
+              Effect: Allow
+              Principal: 
+                  Service: 
+                    - 'logs.amazonaws.com'
+                  AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:user/${UserName}'
+              Action:
+                - 'kms:DescribeKey'
+                - 'kms:Encrypt'
+                - 'kms:Decrypt'
+                - 'kms:ReEncryptKey'
+                - 'kms:GenerateDataKey'
+                - 'kms:GenerateDataKeyWithoutPlaintext'
+                - 'kms:UpdateKeyPolicy'
+                - 'kms:GetKey'
+                - 'kms:DisableKey'
+                - 'kms:DeleteKey'
+                - 'kms:ScheduleKeyDeletion'
+                - 'kms:PutKeyPolicy'
+                - 'kms:EnableKeyRotation'
+                - 'kms:CreateKey'
+                - 'kms:ListKey'
+              Resource: !Sub 'arn:aws:*:${AWS::Region}:${AWS::AccountId}:*'
