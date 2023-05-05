@@ -30,7 +30,9 @@ Resources:
         SecurityGroupIds: 
           - !GetAtt PaymentLambdaSG.GroupId
         SubnetIds: 
-          - !Ref PaymentLambdaSubnet
+          - !Ref PaymentLambdaSubneta
+          - !Ref PaymentLambdaSubnetb
+          - !Ref PaymentLambdaSubnetc
       TracingConfig:
         Mode: Active
   PaymentLambdaRole: 
@@ -55,6 +57,7 @@ Resources:
                 Principal: 
                     Service: 
                         - "lambda.amazonaws.com"
+                        - "vpc-flow-logs.amazonaws.com"
                 Action: 
                         - 'sts:AssumeRole'
   PaymentAPIRole: 
@@ -131,6 +134,7 @@ Resources:
     DependsOn: 
           - PaymentLambdaVPC
     Type: AWS::EC2::SecurityGroup
+    DeletionPolicy: Delete
     Properties:
       GroupDescription: 'Enable HTTPS access'
       VpcId: !Ref PaymentLambdaVPC
@@ -140,18 +144,56 @@ Resources:
           ToPort: 443
           CidrIp: 172.32.0.0/32
           Description: 'Enable HTTPS access'
+        - IpProtocol: TCP
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 172.32.0.0/32
+          Description: 'Enable SSH access'
+        - IpProtocol: TCP
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 172.32.0.0/32
+          Description: 'Enable HTTP access'
       SecurityGroupEgress:
         - IpProtocol: TCP
           FromPort: 443
           ToPort: 443
           CidrIp: 172.32.0.0/32
           Description: 'Enable HTTPS access'
-  PaymentLambdaSubnet:
+        - IpProtocol: TCP
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 172.32.0.0/32
+          Description: 'Enable SSH access'
+        - IpProtocol: TCP
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 172.32.0.0/32
+          Description: 'Enable HTTP access'
+  PaymentLambdaSubneta:
     Type: AWS::EC2::Subnet
+    DeletionPolicy: Delete
     Properties:
       VpcId:
         Ref: PaymentLambdaVPC
       CidrBlock: 172.32.0.0/24
+      AvailabilityZone: !Sub '${AWS::Region}a'
+  PaymentLambdaSubnetb:
+    Type: AWS::EC2::Subnet
+    DeletionPolicy: Delete
+    Properties:
+      VpcId:
+        Ref: PaymentLambdaVPC
+      CidrBlock: 172.32.1.0/24
+      AvailabilityZone: !Sub '${AWS::Region}b'
+  PaymentLambdaSubnetc:
+    Type: AWS::EC2::Subnet
+    DeletionPolicy: Delete
+    Properties:
+      VpcId:
+        Ref: PaymentLambdaVPC
+      CidrBlock: 172.32.2.0/24
+      AvailabilityZone: !Sub '${AWS::Region}c'
   PaymentLogGroup: 
     Type: AWS::Logs::LogGroup
     Properties:   
@@ -309,11 +351,11 @@ Resources:
           Stage: !Ref Prod
       Description: Payment usage plan
       Quota:
-        Limit: 20
+        Limit: 80
         Period: MONTH
       Throttle:
-        BurstLimit: 20
-        RateLimit: 20
+        BurstLimit: 80
+        RateLimit: 80
       UsagePlanName: Payment_Usage_Plan
   PaymentApiKey:
     Type: 'AWS::ApiGateway::ApiKey'
