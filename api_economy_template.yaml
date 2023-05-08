@@ -450,4 +450,4 @@ Resources:
               - 'kms:EnableKeyRotation'
               - 'kms:CreateKey'
               - 'kms:ListKey'
-            Resource: !Sub 'arn:aws:*:${AWS::Region}:${AWS::AccountId}:*'
+            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:*'
