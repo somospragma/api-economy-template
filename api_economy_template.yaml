@@ -3,10 +3,9 @@ Description: Lambda function.
 Parameters:
   UserName:
     Type: String
+    Description: 'Put your IAM user'
 Resources:
   PaymentService:
-    DependsOn:
-      - EC2NetworkInterfacePolicy
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: 'payment'
@@ -26,13 +25,6 @@ Resources:
               }
 
       Description: Function.
-      VpcConfig:
-        SecurityGroupIds: 
-          - !GetAtt PaymentLambdaSG.GroupId
-        SubnetIds: 
-          - !Ref PaymentLambdaSubneta
-          - !Ref PaymentLambdaSubnetb
-          - !Ref PaymentLambdaSubnetc
       TracingConfig:
         Mode: Active
   PaymentLambdaRole: 
@@ -57,7 +49,6 @@ Resources:
                 Principal: 
                     Service: 
                         - "lambda.amazonaws.com"
-                        - "vpc-flow-logs.amazonaws.com"
                 Action: 
                         - 'sts:AssumeRole'
   PaymentAPIRole: 
@@ -96,113 +87,6 @@ Resources:
         Roles: 
             - Ref: "PaymentAPIRole"
             - Ref: "PaymentLambdaRole"
-  EC2NetworkInterfacePolicy:
-    Type: 'AWS::IAM::Policy'
-    DependsOn:
-        - PaymentLambdaRole
-    Properties:
-        PolicyName: 'EC2NetworkInterfacePolicy'
-        PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-                - Effect: Allow
-                  Action:
-                    - 'ec2:DescribeNetworkInterfaces'
-                    - 'ec2:CreateNetworkInterface'
-                    - 'ec2:DeleteNetworkInterface'
-                    - 'ec2:DescribeInstances'
-                    - 'ec2:AttachNetworkInterface'
-                  Resource: '*'
-        Roles: 
-            - Ref: "PaymentLambdaRole"
-  PaymentLambdaVPC:
-    Type: 'AWS::EC2::VPC'
-    Properties:
-      CidrBlock: 172.32.0.0/16
-      EnableDnsHostnames: true
-  FlowLogs:
-    DependsOn: 
-      - PaymentLambdaVPC
-    Type: 'AWS::EC2::FlowLog'
-    Properties:
-      DeliverLogsPermissionArn: !GetAtt PaymentLambdaRole.Arn
-      LogDestination: !GetAtt PaymentLogGroup.Arn
-      ResourceId: !Ref PaymentLambdaVPC
-      ResourceType: VPC
-      TrafficType: ALL
-  PaymentLambdaSG:
-    DependsOn: 
-          - PaymentLambdaVPC
-    Type: AWS::EC2::SecurityGroup
-    DeletionPolicy: Delete
-    Properties:
-      GroupDescription: 'Enable HTTPS access'
-      VpcId: !Ref PaymentLambdaVPC
-      SecurityGroupIngress:
-        - IpProtocol: TCP
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 172.32.0.0/32
-          Description: 'Enable HTTPS access'
-        - IpProtocol: TCP
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 172.32.0.0/32
-          Description: 'Enable SSH access'
-        - IpProtocol: TCP
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 172.32.0.0/32
-          Description: 'Enable HTTP access'
-      SecurityGroupEgress:
-        - IpProtocol: TCP
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 172.32.0.0/32
-          Description: 'Enable HTTPS access'
-        - IpProtocol: TCP
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 172.32.0.0/32
-          Description: 'Enable SSH access'
-        - IpProtocol: TCP
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 172.32.0.0/32
-          Description: 'Enable HTTP access'
-  PaymentLambdaSubneta:
-    Type: AWS::EC2::Subnet
-    DeletionPolicy: Delete
-    Properties:
-      VpcId:
-        Ref: PaymentLambdaVPC
-      CidrBlock: 172.32.0.0/24
-      AvailabilityZone: !Sub '${AWS::Region}a'
-  PaymentLambdaSubnetb:
-    Type: AWS::EC2::Subnet
-    DeletionPolicy: Delete
-    Properties:
-      VpcId:
-        Ref: PaymentLambdaVPC
-      CidrBlock: 172.32.1.0/24
-      AvailabilityZone: !Sub '${AWS::Region}b'
-  PaymentLambdaSubnetc:
-    Type: AWS::EC2::Subnet
-    DeletionPolicy: Delete
-    Properties:
-      VpcId:
-        Ref: PaymentLambdaVPC
-      CidrBlock: 172.32.2.0/24
-      AvailabilityZone: !Sub '${AWS::Region}c'
-  PaymentLogGroup: 
-    Type: AWS::Logs::LogGroup
-    Properties:   
-      LogGroupName: !Join
-        - ''
-        - - '/aws/lambda/'
-          - !Ref PaymentService
-      RetentionInDays: 7
-      KmsKeyId: !GetAtt PaymentLogGroupKey.Arn
   PaymentXRayGroup:
     Type: AWS::XRay::Group
     Properties:
@@ -418,36 +302,3 @@ Resources:
       Target: 
         Arn: !GetAtt PaymentService.Arn
         RoleArn: !GetAtt PaymentSchedulerRole.Arn
-  PaymentLogGroupKey:
-    Type: 'AWS::KMS::Key'
-    Properties:
-      Description: An example symmetric encryption KMS key
-      EnableKeyRotation: true
-      PendingWindowInDays: 20
-      KeyPolicy:
-        Version: '2012-10-17'
-        Id: key-payment-loggroup
-        Statement:
-          - Sid: Allow use of the key
-            Effect: Allow
-            Principal: 
-                Service: 
-                  - 'logs.amazonaws.com'
-                AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:user/${UserName}'
-            Action:
-              - 'kms:DescribeKey'
-              - 'kms:Encrypt'
-              - 'kms:Decrypt'
-              - 'kms:ReEncryptKey'
-              - 'kms:GenerateDataKey'
-              - 'kms:GenerateDataKeyWithoutPlaintext'
-              - 'kms:UpdateKeyPolicy'
-              - 'kms:GetKey'
-              - 'kms:DisableKey'
-              - 'kms:DeleteKey'
-              - 'kms:ScheduleKeyDeletion'
-              - 'kms:PutKeyPolicy'
-              - 'kms:EnableKeyRotation'
-              - 'kms:CreateKey'
-              - 'kms:ListKey'
-            Resource: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:*'
